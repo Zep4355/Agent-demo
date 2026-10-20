@@ -1,6 +1,9 @@
 # 本地敏感配置（里面有 API key，绝对不能推到 GitHub！）
 .env
 
+# Agent 记忆文件（含用户个人信息，也不上推）
+memory.json
+
 # Python 缓存
 __pycache__/
 *.pyc

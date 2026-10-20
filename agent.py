@@ -23,6 +23,7 @@ import requests
 
 import config
 from tools import TOOLS, run_tool, tools_description
+import memory  # 持久记忆模块
 
 # ---------------------------------------------------------------
 # 提示词：告诉 LLM 你是谁、有哪些工具、按什么格式输出
@@ -71,9 +72,15 @@ class Agent:
     # 模式一：LLM 驱动（完整 ReAct，需配置 DeepSeek API key）
     # ---------------------------------------------------------------
     def _run_with_llm(self, user_input: str) -> str:
-        # 初始化对话：system + 用户指令
+        # 把长期记忆作为背景讲给 Agent 听
+        system_content = SYSTEM_PROMPT
+        memory_ctx = memory.memory_context()
+        if memory_ctx:
+            system_content += "\n\n【你的长期记忆】\n" + memory_ctx
+
+        # 初始化对话：system（含记忆背景） + 用户指令
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": user_input},
         ]
 
@@ -88,6 +95,12 @@ class Agent:
             if decision is None:
                 # 解析失败就当作最终答案
                 return "（模型输出无法解析，已中止）" + content
+
+            # ②.5 自动保存模型认为值得长期记住的信息
+            remember = decision.get("to_remember", "")
+            if remember:
+                memory.add_memory(remember)
+                print(f"🧠 已记住：{remember}")
 
             thought = decision.get("thought", "")
             action = decision.get("action", "")
